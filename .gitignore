@@ -1,0 +1,4 @@
+*.tif
+*.png
+img_out/
+plot_out/
