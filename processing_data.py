@@ -1,5 +1,4 @@
 import pandas as pd
-import scipy.signal
 from matplotlib import pyplot as plt
 from pathlib import Path
 import numpy as np
@@ -74,31 +73,30 @@ def get_stenosis_part(data, show_plot=False):
     diff = np.diff(data)
     diff_0 = np.where(abs(diff) <= 0.001)
     minimum_area_pos = np.argmin(data)
-    left_part = data[:minimum_area_pos]
-    right_part = data[minimum_area_pos+1:]
-    left_diff = np.diff(left_part)
-    right_diff = np.diff(right_part)
+    minimum_area = np.min(data)
     stenosis_left_pos = 0
     stenosis_right_pos = len(data)
     peaks, _ = signal.find_peaks(data)
 
-    for peak_pos in peaks:
-        if peak_pos < minimum_area_pos:
-            condition_1 = left_diff[max(peak_pos - 2, 0): peak_pos] >= 0
-            condition_2 = left_diff[min(peak_pos + 1, len(right_diff)): min(peak_pos + 3, len(right_diff))] <= 0
-            if condition_1.all() and condition_2.all():
-                stenosis_left_pos = peak_pos
-                print("stenosis_left_pos: ", stenosis_left_pos)
-                break
+    peaks = list(filter(lambda x: data[x]-minimum_area >= 1, peaks))
+    peaks_left = list(filter(lambda x: x < minimum_area_pos, peaks))
+    peaks_right = list(filter(lambda x: x > minimum_area_pos, peaks))
 
-    for peak_pos in peaks:
-        if peak_pos > minimum_area_pos:
-            condition_1 = right_diff[max(peak_pos - 2, 0): peak_pos] <= 0
-            condition_2 = right_diff[min(peak_pos + 1, len(right_diff)): min(peak_pos + 3, len(right_diff))] >= 0
-            if condition_1.all() and condition_2.all():
-                stenosis_right_pos = peak_pos
-                print("stenosis_right_pos: ", stenosis_right_pos)
-                break
+    for peak_pos in peaks_left[::-1]:
+        var_left = np.var(data[max(0, peak_pos - 5):peak_pos])
+        print(f"var_left: {var_left}")
+        if var_left <= 0.006:
+            stenosis_left_pos = peak_pos
+            print("stenosis_left_pos: ", stenosis_left_pos)
+            break
+
+    for peak_pos in peaks_right:
+        var_right = np.var(data[peak_pos+1: min(len(data), peak_pos + 6)])
+        print(f"var_right: {var_right}")
+        if var_right <= 0.006:
+            stenosis_right_pos = peak_pos
+            print("stenosis_right_pos: ", stenosis_right_pos)
+            break
 
     if show_plot:
         plt.plot(data)
@@ -107,26 +105,28 @@ def get_stenosis_part(data, show_plot=False):
         plt.plot(diff_0, np.zeros(len(diff_0)), 'r.')
         plt.plot(peaks, data[peaks], "o")
         plt.vlines([stenosis_left_pos, stenosis_right_pos], 0, np.max(data), linestyles='dashed')
-        plt.vlines([minimum_area_pos,], 0, np.max(data), linestyles='solid')
+        plt.vlines(minimum_area_pos, 0, np.max(data), linestyles='solid')
         plt.show()
     return data[stenosis_left_pos:stenosis_right_pos]
 
+def get_processed_data():
+    data_dir = Path("./data_out")
+    for person_dir in data_dir.iterdir():
+        person_id = person_dir.stem
+        for csv_path in person_dir.iterdir():
+            inspection_id = int(csv_path.stem.split('_')[-1]) - 1
+            print("\n", person_id)
+            print(csv_path.stem)
+            df = pd.read_csv(csv_path)
+            area = df['Area'].to_numpy()
+            area = signal.medfilt(area, 7)
+            area = remove_right_step(area)
+            area = get_stenosis_part(area, show_plot=True)
 
-data_dir = Path("./data_out")
-for person_dir in data_dir.iterdir():
-    person_id = person_dir.stem
-    for csv_path in person_dir.iterdir():
-        inspection_id = int(csv_path.stem.split('_')[-1]) - 1
-        print("\n", person_id)
-        print(csv_path.stem)
-        df = pd.read_csv(csv_path)
-        area = df['Area'].to_numpy()
-        area = signal.medfilt(area, 7)
-        area = remove_right_step(area)
-        area = get_stenosis_part(area, show_plot=True)
+            (data_out_dir := Path(f"./processed_data/{person_id:03}")).mkdir(parents=True, exist_ok=True)
+            data_out_path = data_out_dir / f"ofr_area_{inspection_id}.csv"
+            res_df = pd.DataFrame({"Area": area})
+            res_df.to_csv(data_out_path)
 
-        (data_out_dir := Path(f"./processed_data/{person_id:03}")).mkdir(parents=True, exist_ok=True)
-        data_out_path = data_out_dir / f"ofr_area_{inspection_id}.csv"
-        res_df = pd.DataFrame({"Area": area})
-        res_df.to_csv(data_out_path)
+get_processed_data()
 
