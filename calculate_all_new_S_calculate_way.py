@@ -2,6 +2,7 @@ import pandas as pd
 import math
 import numpy as np
 from pathlib import Path
+from scipy import signal
 
 def calculate_all():
     # 设置常数, 所有数据单位都是基本单位
@@ -15,15 +16,20 @@ def calculate_all():
     P = {"dia": 60, "sys": 120, "mean": 80}
     max_SFR = {"dia": 4.2, "sys": 2.0}
 
-    def get_f_s(area: np.array):
-        An = max(area[0, 0], area[-1, 0])
-        As = area.min()
+    def get_S(data):
+        peaks, _ = signal.find_peaks(data)
+        np.insert(peaks, 0, 0)
+        np.append(peaks, len(data) - 1)
+        stenosis, _ = signal.find_peaks(-data)
+        S_list = []
+        for i in range(len(peaks) - 1):
+            peak_left_pos, peak_right_pos = peaks[i], peaks[i + 1]
+            test_stenosis_part = data[peak_left_pos: peak_right_pos]
+            normal_area = max(data[peak_left_pos] , data[peak_right_pos])
+            min_area = np.min(test_stenosis_part)
+            S_list.append(rho / 2 * (normal_area / min_area - 1) ** 2)
 
-        F_ = 8 * math.pi * mu * L_OCT * np.sum(An / area / area)
-        S_ = rho / 2 * (An / As - 1) ** 2
-        F_mmHg_s_div_cm = F_ * 0.0075 * 0.01
-        S_mmHg_s2_div_cm2 = S_ * 0.0075 * 0.01 * 0.01
-        return F_mmHg_s_div_cm, S_mmHg_s2_div_cm2
+        return np.sum(S_list)
 
     def get_delta_p_mapper(F_, S_, V_):
         def inner(condition):
@@ -38,7 +44,7 @@ def calculate_all():
     dcm_root = Path(r"D:\data\OFR\OCT OFR DCM")
     ofr_types = [dcm.stem[4:5] for dcm in dcm_root.iterdir()]  # L or R
 
-    data_dir = Path(r"./processed_data")
+    data_dir = Path(r"./processed_data_2")
     person_id = 0
     FFRs = []
     for person_dir in data_dir.iterdir():
@@ -49,9 +55,14 @@ def calculate_all():
             inspection_id = int(csv_path.stem.split('_')[-1])-1
             df = pd.read_csv(csv_path)
 
-            F, S = get_f_s(df[['Area']].to_numpy()/1000000)
+            area_mm2 = df['Area'].to_numpy()
 
-            dP = dict(map(get_delta_p_mapper(F, S, V), ["dia", "sys"]))
+            F = 8 * math.pi * mu * L_OCT * np.sum(1 / area_mm2)*1e6
+            S = get_S(area_mm2)
+            F_mmHg_s_div_cm = F * 0.0075 * 0.01
+            S_mmHg_s2_div_cm2 = S * 0.0075 * 0.01 * 0.01
+
+            dP = dict(map(get_delta_p_mapper(F_mmHg_s_div_cm, S_mmHg_s2_div_cm2, V), ["dia", "sys"]))
             FFR = (2/3*(P["dia"] - dP["dia"]) + 1/3*(P["sys"] - dP["sys"]))/P["mean"]
             print("{}_{}: FFR={:.3} mmHg".format(person_id+1, inspection_id+1, FFR))
             inner_list.append(FFR)

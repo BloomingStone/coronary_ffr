@@ -121,9 +121,9 @@ def get_processed_data():
             area = df['Area'].to_numpy()
             area = signal.medfilt(area, 7)
             area = remove_right_step(area)
-            area = get_stenosis_part(area, show_plot=True)
+            # area = get_stenosis_part(area, show_plot=True)
 
-            (data_out_dir := Path(f"./processed_data/{person_id:03}")).mkdir(parents=True, exist_ok=True)
+            (data_out_dir := Path(f"./processed_data_2/{person_id:03}")).mkdir(parents=True, exist_ok=True)
             data_out_path = data_out_dir / f"ofr_area_{inspection_id}.csv"
             res_df = pd.DataFrame({"Area": area})
             res_df.to_csv(data_out_path)

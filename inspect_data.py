@@ -59,8 +59,8 @@ calculate_part = [
 #     [[25,  155], [47, 396]],  # 第二个到了一个偏大的地方
 # ]
 
-data_dir = Path("./data_out")
-plot_dir = Path("./plot_out")
+data_dir = Path("./processed_data_2")
+plot_dir = Path("./processed_data_2_plot")
 (area_dir := plot_dir / "area").mkdir(parents=True, exist_ok=True)
 (eccentricity_dir := plot_dir / "eccentricity").mkdir(parents=True, exist_ok=True)
 for person_dir in data_dir.iterdir():
@@ -70,14 +70,14 @@ for person_dir in data_dir.iterdir():
         df = pd.read_csv(csv_path)
         title = f"{person_dir.stem}_{inspection_id+1}"
 
-        part = calculate_part[person_id][inspection_id]
-        ax = df.plot(x='OFR_ID', y='Area', title=title, figsize=(6, 2))
-        ax.vlines(part, 0, np.max(df[['Area']].to_numpy()), linestyles='dashed', colors='red')
+        # part = calculate_part[person_id][inspection_id]
+        ax = df.plot(y='Area', title=title, figsize=(6, 2))
+        # ax.vlines(part, 0, np.max(df[['Area']].to_numpy()), linestyles='dashed', colors='red')
         fig = ax.get_figure()
         plt.show()
         fig.savefig(area_dir / f"{title}.png")
 
-        ax = df.plot(x='OFR_ID', y='Eccentricity', title=title)
-        fig = ax.get_figure()
-        fig.savefig(eccentricity_dir / f"{title}.png")
-        plt.close('all')
+        # ax = df.plot(x='OFR_ID', y='Eccentricity', title=title)
+        # fig = ax.get_figure()
+        # fig.savefig(eccentricity_dir / f"{title}.png")
+        # plt.close('all')

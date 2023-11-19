@@ -17,6 +17,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\processed_data_2\001\ofr_area_0.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
