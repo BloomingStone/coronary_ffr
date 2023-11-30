@@ -29,3 +29,13 @@ Q
 !processed_data/003/ofr_area_0.csv,e\1\e1885e80e7a4e94f6c7f9f6c2ab3d8190c395ce7
 Q
 !processed_data/003/ofr_area_1.csv,a\4\a4eb26edf91e9eb5ad1df2b479ee0eb676cf39f0
+9
+	ofr_2.csv,9\8\987d39a2a8f0ba497bbdb66c4efb5084925a179a
+K
+data_out/001/ofr_area_1.csv,c\2\c2ebc4264e9e8a1cf1af533c04e00970dc6f63af
+S
+#.idea/sonarlint/issuestore/index.pb,9\f\9fe84ebb15faf917b7def6236dba604453cc61e0
+8
+get_S.py,8\f\8f1a6c6c17fd8b99a0d3b8e193f4b624f9ff096e
+]
+-.idea/sonarlint/securityhotspotstore/index.pb,8\8\88a9255124c95bdc913197c120a8d560edc59c8e

@@ -61,26 +61,21 @@ def remove_right_step(data: np.array):
     # 找到分割点1(一直是一段没有变化的面积)
     split_point_1_list = np.where(test_value == 1)
     if len(split_point_1_list[0]) == 0:
-        print("no split_point_1")
         split_point_1 = len(data)
     else:
         split_point_1 = split_point_1_list[0][-1]
-        print("split point 1:", split_point_1)
 
     diff = np.diff(data)  # 差分
     split_point_2_list = np.where((np.where(diff <= -1.5, 1, 0)) == 1)  # 二值化
 
     # 找到分割点2(突然下降)
     if len(split_point_2_list[0]) == 0:
-        print("no split_point_2")
         split_point_2 = len(data)
     else:
         split_point_2 = split_point_2_list[0][-1]
-        print("split_point_2: ", split_point_2)
 
     # 要求分割点1&2应距离较近
     if abs(split_point_1 - split_point_2) < 20:
-        print("altered data")
         split_point = min(split_point_1, split_point_2)-10
         data = data[:split_point]   # 切去有问题的部分
 
@@ -88,10 +83,8 @@ def remove_right_step(data: np.array):
     split_point_3_list = np.where((np.where(diff >= 5, 1, 0)) == 1)
     if len(split_point_3_list[0]) == 0:
         split_point_3 = len(data)
-        print("no split_point_3")
     else:
         split_point_3 = split_point_3_list[0][-1] - 10
-        print("split_point_3: ", split_point_3)
     if split_point_3 > 350:
         data = data[:split_point_3]
 
@@ -99,22 +92,14 @@ def remove_right_step(data: np.array):
 
 def get_delta_p(F, S, V_normal):
     res = {}
-    for hear_status in ['dia', 'sys']:
-        b = F + 4.5 / max_SFR[hear_status]
+    for heart_status in ['dia', 'sys']:
+        b = F + 4.5 / max_SFR[heart_status]
         SFR = (math.sqrt(b ** 2 + 360 * S) - b) / 40 / S
-        dP = F * V_normal[hear_status] * SFR + S * (V_normal[hear_status] * SFR) ** 2
-        res.update({hear_status, dP})
+        dP = F * V_normal[heart_status] * SFR + S * (V_normal[heart_status] * SFR) ** 2
+        res.update({heart_status: dP})
     return res
 
 
-@click.group()
-def main():
-    # 作为多命令的入口函数, 无实际作用
-    pass
-
-@main.command()
-@click.option('-d', '--tif_dir', default='', help='输入存放分割结果的文件夹路径, 返回ffr结果')
-@click.option('-s', '--coronary_side', help="输入 'L' 或 'R' 区分左右冠状动脉")
 def get_ffr(tif_dir, coronary_side: str):
     """
     输入tif分割结果文件所在的目录, 打印ffr
@@ -149,13 +134,12 @@ def get_ffr(tif_dir, coronary_side: str):
     V_normal = left_v if coronary_side == 'L' else right_v
     dP = get_delta_p(F_mmHg_s_div_cm, S_mmHg_s2_div_cm2, V_normal)
     FFR = (2 * (P["dia"] - dP["dia"]) + (P["sys"] - dP["sys"])) / 3 / P["mean"]
-    print(f"FFR={FFR: .3}mmHg")
     return FFR
 
 
 class GetFfrThread(Thread):
     def __init__(self, person_id, tif_dir, coronary_side):
-        Thread.__init__(self)
+        super().__init__()
         self.person_id = person_id
         self.tif_dir = tif_dir
         self.coronary_side = coronary_side
@@ -164,24 +148,21 @@ class GetFfrThread(Thread):
     def run(self) -> None:
         self.res = get_ffr(self.tif_dir, self.coronary_side)
 
-
-@main.command()
+@click.command()
 @click.option('-d', '--root_dir', default='', help="""
 输入存放多人分割结果的文件夹路径, 一次打印ffr结果
-文件夹组织方式为
+""")
+def get_multi_ffr(root_dir):
+    """
+    输入存放多人分割结果的文件夹路径, 一次打印ffr结果
+    文件夹组织方式为
     - ofr_root
     - person_(L/R)
         - inspection_1
             - 1.tif
             - 2.tif
-""")
-def get_multi_ffr(root_dir):
     """
-    输入存放多人分割结果的文件夹路径, 一次打印ffr结果
-    :param root_dir:
-    :return:
-    """
-    if root_dir is str:
+    if isinstance(root_dir, str):
         root_dir = Path(root_dir)
         if not root_dir.is_absolute():
             root_dir = Path.cwd() / root_dir
@@ -189,11 +170,11 @@ def get_multi_ffr(root_dir):
     t_list = []
     for person_id, person_dir in enumerate(root_dir.iterdir()):
         assert person_dir.is_dir()
-        coronary_side = str(root_dir).split('_')[-1]
+        coronary_side = str(person_dir).split('_')[-1]
         for inspection_dir in person_dir.iterdir():
             assert inspection_dir.is_dir()
             t = GetFfrThread(person_id, inspection_dir, coronary_side)
-            t.run()
+            t.start()
             t_list.append(t)
 
     ffr_dict = {}
@@ -206,8 +187,8 @@ def get_multi_ffr(root_dir):
             ffr_dict.update({person_id: 0.5*(ffr_dict[person_id] + t.res)})
 
     for i in sorted(ffr_dict):
-        print(f"{i}\t{ffr_dict}")
+        print(f"{i}\t{ffr_dict[i]}")
 
 
 if __name__ == '__main__':
-    main()
+    get_multi_ffr()

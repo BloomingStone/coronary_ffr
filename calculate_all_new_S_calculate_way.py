@@ -2,6 +2,8 @@ import pandas as pd
 import math
 import numpy as np
 from pathlib import Path
+
+from matplotlib import pyplot as plt
 from scipy import signal
 
 def calculate_all():
@@ -21,6 +23,10 @@ def calculate_all():
         np.insert(peaks, 0, 0)
         np.append(peaks, len(data) - 1)
         stenosis, _ = signal.find_peaks(-data)
+        plt.plot(data)
+        plt.vlines(peaks, min(data), max(data), 'r', linestyles='dashed')
+        plt.plot(stenosis, data[stenosis], '*')
+        plt.show()
         S_list = []
         for i in range(len(peaks) - 1):
             peak_left_pos, peak_right_pos = peaks[i], peaks[i + 1]
@@ -39,7 +45,6 @@ def calculate_all():
             Delta_P = F_ * V_[condition] * SFR + S_ * (V_[condition] * SFR) ** 2
             return condition, Delta_P
         return inner
-
 
     dcm_root = Path(r"D:\data\OFR\OCT OFR DCM")
     ofr_types = [dcm.stem[4:5] for dcm in dcm_root.iterdir()]  # L or R
