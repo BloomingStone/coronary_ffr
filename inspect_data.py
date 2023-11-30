@@ -18,18 +18,18 @@ import numpy as np
 # ]
 
 # 企业给的狭窄段划分数据(修正)
-calculate_part = [
-    [[11, 328], ],
-    [[0,   396], ],
-    [[0, 372], [28, 247]],
-    [[67,   234], ],
-    [[0,   202], [0, 240]],  # 第二个和沃夫曼的不一样
-    [[0,    273], ],
-    [[0,   415], ],
-    [[39,   199], [66, 138]],
-    [[68,   261], ],
-    [[25,  396], [47, 396]],  # 第一个和沃夫曼的不一样
-]
+# calculate_part = [
+#     [[11, 328], ],
+#     [[0,   396], ],
+#     [[0, 372], [28, 247]],
+#     [[67,   234], ],
+#     [[0,   202], [0, 240]],  # 第二个和沃夫曼的不一样
+#     [[0,    273], ],
+#     [[0,   415], ],
+#     [[39,   199], [66, 138]],
+#     [[68,   261], ],
+#     [[25,  396], [47, 396]],  # 第一个和沃夫曼的不一样
+# ]
 
 # 企业给的数据(无修正)
 # calculate_part = [
@@ -59,8 +59,8 @@ calculate_part = [
 #     [[25,  155], [47, 396]],  # 第二个到了一个偏大的地方
 # ]
 
-data_dir = Path("./processed_data_2")
-plot_dir = Path("./processed_data_2_plot")
+data_dir = Path("./data_out")
+plot_dir = Path("./plot_out")
 (area_dir := plot_dir / "area").mkdir(parents=True, exist_ok=True)
 (eccentricity_dir := plot_dir / "eccentricity").mkdir(parents=True, exist_ok=True)
 for person_dir in data_dir.iterdir():

@@ -12,62 +12,54 @@ def remove_right_step(data: np.array, show_plot=False):
         plt.plot(np.arange(len(data)), data)
         plt.show()
 
-    # 二次函数变换映射
-    x0 = 0.05
-    A = 1/x0/x0
-    diff = np.diff(data)
-    test_value = np.maximum(A*(x0**2-diff**2), np.zeros(diff.shape))
-    test_value = signal.medfilt(test_value, 31)  # 中值滤波
-    test_value = np.where(test_value >= 0.8, 1, 0)  # 二值化
-    test_value = np.diff(test_value)  # 取差分
+    right_end_data = data[-1]
+    diff_to_right_end_square = (data-right_end_data)**2
+    diff_after_filter = signal.medfilt(diff_to_right_end_square, 5)
+    split_point = np.where(np.diff(np.where(diff_after_filter < 0.05, 1, 0))==1)[0][-1]
+    if len(data)-split_point > 2:
+        data = data[:(split_point-5)]
 
-    # 找到分割点1(一直是一段没有变化的面积)
-    split_point_1_list = np.where(test_value == 1)
-    if len(split_point_1_list[0]) == 0:
-        print("no split_point_1")
-        split_point_1 = len(data)
-    else:
-        split_point_1 = split_point_1_list[0][-1]
-        print("split point 1:", split_point_1)
+    # if show_plot:
+    #     plt.plot(np.arange(len(data)), data)
+    #     plt.show()
 
-    diff = np.diff(data)  # 差分
-    if show_plot:
-        plt.plot(np.arange(len(diff)), diff)
-        plt.show()
-    split_point_2_list = np.where((np.where(diff <= -1.5, 1, 0)) == 1)  # 二值化
+    data_after_filter = signal.medfilt(data, 7)
+    diff = np.diff(data_after_filter)
+    diff_sum = diff[1:]+diff[:-1]
 
-    # 找到分割点2(突然下降)
-    if len(split_point_2_list[0]) == 0:
-        print("no split_point_2")
-        split_point_2 = len(data)
-    else:
-        split_point_2 = split_point_2_list[0][-1]
-        print("split_point_2: ", split_point_2)
+    plt.plot(diff_sum)
+    plt.show()
 
-    # 要求分割点1&2应距离较近
-    if abs(split_point_1 - split_point_2) < 20:
-        print("altered data")
-        split_point = min(split_point_1, split_point_2)-10
-        data = data[:split_point]   # 切去有问题的部分
-        if show_plot:
-            plt.plot(np.arange(len(data)), data)
-            plt.show()
-
-    # 找到分割点3(突然上升)
-    split_point_3_list = np.where((np.where(diff >= 5, 1, 0)) == 1)
-    if len(split_point_3_list[0]) == 0:
-        split_point_3 = len(data)
-        print("no split_point_3")
-    else:
-        split_point_3 = split_point_3_list[0][-1] - 10
-        print("split_point_3: ", split_point_3)
-    if split_point_3 > 350:
-        data = data[:split_point_3]
+    # 找到分割点(突然上升)
+    split_point_2_list = np.where((np.where(diff_sum >= 3, 1, 0)) == 1)[0]
+    if len(split_point_2_list) != 0:
+        split_point_2 = split_point_2_list[-1]-5
+        data = data[:split_point_2]
         if show_plot:
             plt.plot(np.arange(len(data)), data)
             plt.show()
 
     return data
+
+def replace_outliers_with_mean(series):
+    result = series.copy()
+
+    for i in range(len(series)):
+        # 计算周围11个数（包括自己）的均值和方差
+        start_index = max(0, i - 5)
+        end_index = min(len(series), i + 6)
+        neighborhood = series[start_index:end_index]
+
+        mean_value = np.mean(neighborhood)
+        sqrt_std_value = np.sqrt(np.std(neighborhood))
+
+        # 判断是否离均值相距大于两个标准差
+        if np.abs(series[i] - mean_value) > 2 * sqrt_std_value:
+            # 用均值替代
+            result[i] = mean_value
+
+    return result
+
 
 def get_stenosis_part(data, show_plot=False):
     diff = np.diff(data)
@@ -119,14 +111,19 @@ def get_processed_data():
             print(csv_path.stem)
             df = pd.read_csv(csv_path)
             area = df['Area'].to_numpy()
-            area = signal.medfilt(area, 7)
-            area = remove_right_step(area)
-            area = get_stenosis_part(area, show_plot=True)
+            area = remove_right_step(area, show_plot=True)
+            # area = get_stenosis_part(area, show_plot=True)
 
-            (data_out_dir := Path(f"./processed_data_2/{person_id:03}")).mkdir(parents=True, exist_ok=True)
-            data_out_path = data_out_dir / f"ofr_area_{inspection_id}.csv"
-            res_df = pd.DataFrame({"Area": area})
-            res_df.to_csv(data_out_path)
+            # plt.plot(area)
+            # plt.show()
+            # area = replace_outliers_with_mean(area)
+            # plt.plot(area)
+            # plt.show()
+
+            # (data_out_dir := Path(f"./processed_data_2/{person_id:03}")).mkdir(parents=True, exist_ok=True)
+            # data_out_path = data_out_dir / f"ofr_area_{inspection_id}.csv"
+            # res_df = pd.DataFrame({"Area": area})
+            # res_df.to_csv(data_out_path)
 
 get_processed_data()
 

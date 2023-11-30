@@ -18,8 +18,8 @@ class OfrImage:
         self.img_recover = self.get_recovered_img()
         self.contours = cv.findContours(self.img_recover, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
         self.biggest_contour = self.get_biggest_contour()
-        self.area = cv.contourArea(self.biggest_contour)/102.4/102.4*1.8
-        self.area_non_zero = cv.countNonZero(self.img_recover)/102.4/102.4*1.8
+        self.area = cv.contourArea(self.biggest_contour)/102.4/102.4
+        self.area_non_zero = cv.countNonZero(self.img_recover)/102.4/102.4
         self.eccentricity = self.get_eccentricity()
 
     def get_recovered_img(self):

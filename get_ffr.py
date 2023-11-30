@@ -46,49 +46,26 @@ def get_s(data):
     return np.sum(S_list)
 
 def remove_right_step(data: np.array):
-    """
-    除去数据画为图象图像后右边突然阶跃的部分
-    """
-    # 二次函数变换映射
-    x0 = 0.05
-    A = 1/x0/x0
-    diff = np.diff(data)
-    test_value = np.maximum(A*(x0**2-diff**2), np.zeros(diff.shape))
-    test_value = signal.medfilt(test_value, 31)  # 中值滤波
-    test_value = np.where(test_value >= 0.8, 1, 0)  # 二值化
-    test_value = np.diff(test_value)  # 取差分
+    # 去除导引导管区域
+    res = data.copy()
+    right_end_data = res[-1]    # 取最右端的值作为参考, 去除所有最右端面积相近处的值(导引导管)
+    diff_to_right_end_square = (res-right_end_data)**2
+    diff_after_filter = signal.medfilt(diff_to_right_end_square, 5)  # 导引区域面积有时候会突然增加, 过滤掉
+    split_point = np.where(np.diff(np.where(diff_after_filter < 0.05, 1, 0)) == 1)[0][-1]
+    if len(res)-split_point > 2:
+        res = res[:(split_point-5)]  # 向左边多取一点, 保证导引区域全部去除, 下同
 
-    # 找到分割点1(一直是一段没有变化的面积)
-    split_point_1_list = np.where(test_value == 1)
-    if len(split_point_1_list[0]) == 0:
-        split_point_1 = len(data)
-    else:
-        split_point_1 = split_point_1_list[0][-1]
+    # 去除主动脉区域(突然上升)
+    data_after_filter = signal.medfilt(res, 7)
+    diff = np.diff(data_after_filter)
+    diff_sum = diff[1:]+diff[:-1]  # 每两个相邻diff相加, 是连续增加
 
-    diff = np.diff(data)  # 差分
-    split_point_2_list = np.where((np.where(diff <= -1.5, 1, 0)) == 1)  # 二值化
+    split_point_2_list = np.where((np.where(diff_sum >= 4, 1, 0)) == 1)[0]
+    if len(split_point_2_list) != 0:
+        split_point_2 = split_point_2_list[-1]-5
+        res = res[:split_point_2]
 
-    # 找到分割点2(突然下降)
-    if len(split_point_2_list[0]) == 0:
-        split_point_2 = len(data)
-    else:
-        split_point_2 = split_point_2_list[0][-1]
-
-    # 要求分割点1&2应距离较近
-    if abs(split_point_1 - split_point_2) < 20:
-        split_point = min(split_point_1, split_point_2)-10
-        data = data[:split_point]   # 切去有问题的部分
-
-    # 找到分割点3(突然上升)
-    split_point_3_list = np.where((np.where(diff >= 5, 1, 0)) == 1)
-    if len(split_point_3_list[0]) == 0:
-        split_point_3 = len(data)
-    else:
-        split_point_3 = split_point_3_list[0][-1] - 10
-    if split_point_3 > 350:
-        data = data[:split_point_3]
-
-    return data
+    return res
 
 def get_delta_p(F, S, V_normal):
     res = {}
@@ -123,8 +100,8 @@ def get_ffr(tif_dir, coronary_side: str):
 
     areas_mm2 = [ofr_id_area_map[i] for i in sorted(ofr_id_area_map)]
     areas_mm2 = np.array(areas_mm2)
-    areas_mm2 = signal.medfilt(areas_mm2, 7)
     areas_mm2 = remove_right_step(areas_mm2)
+    areas_mm2 = signal.medfilt(areas_mm2, 5)
     F = 8 * math.pi * mu * L_OCT * np.sum(1 / areas_mm2) * 1e6
     S = get_s(areas_mm2)
     F_mmHg_s_div_cm = F * 0.0075 * 0.01
