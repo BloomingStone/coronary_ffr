@@ -118,8 +118,8 @@ def get_ffr(tif_dir, coronary_side: str):
         img_recover = get_recovered_img(img_origin)
         contours = cv.findContours(img_recover, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
         biggest_contour = get_biggest_contour(contours)
-        max_area = cv.contourArea(biggest_contour)/102.4/102.4*1.8  # 1.8用于修正分割结果与真实截面积偏差
-        ofr_id_area_map.update({ofr_id: max_area})
+        max_area_mm2 = cv.contourArea(biggest_contour)/102.4/102.4  # 10mm * 10mm 1024*1204 像素
+        ofr_id_area_map.update({ofr_id: max_area_mm2})
 
     areas_mm2 = [ofr_id_area_map[i] for i in sorted(ofr_id_area_map)]
     areas_mm2 = np.array(areas_mm2)
@@ -187,7 +187,7 @@ def get_multi_ffr(root_dir):
             ffr_dict.update({person_id: 0.5*(ffr_dict[person_id] + t.res)})
 
     for i in sorted(ffr_dict):
-        print(f"{i}\t{ffr_dict[i]}")
+        print(ffr_dict[i])
 
 
 if __name__ == '__main__':
