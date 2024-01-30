@@ -5,4 +5,7 @@
     <orderEntry type="jdk" jdkName="D:\Stone\anaconda\envs\openCV" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="SonarLintModuleSettings">
+    <option name="uniqueId" value="9a5ced36-0909-4366-b316-bd7b7dd39d7c" />
+  </component>
 </module>

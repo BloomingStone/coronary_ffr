@@ -111,7 +111,7 @@ def get_ffr(tif_dir, coronary_side: str):
     V_normal = left_v if coronary_side == 'L' else right_v
     dP = get_delta_p(F_mmHg_s_div_cm, S_mmHg_s2_div_cm2, V_normal)
     FFR = (2 * (P["dia"] - dP["dia"]) + (P["sys"] - dP["sys"])) / 3 / P["mean"]
-    return FFR
+    return np.array([FFR, F_mmHg_s_div_cm, S_mmHg_s2_div_cm2])
 
 
 class GetFfrThread(Thread):
@@ -163,8 +163,17 @@ def get_multi_ffr(root_dir):
         else:
             ffr_dict.update({person_id: 0.5*(ffr_dict[person_id] + t.res)})
 
+    print("ffr:")
     for i in sorted(ffr_dict):
-        print(ffr_dict[i])
+        print(ffr_dict[i][0])
+
+    print("F:")
+    for i in sorted(ffr_dict):
+        print(ffr_dict[i][1])
+
+    print("S:")
+    for i in sorted(ffr_dict):
+        print(ffr_dict[i][2])
 
 
 if __name__ == '__main__':
